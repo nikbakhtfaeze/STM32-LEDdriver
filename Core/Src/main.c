@@ -42,6 +42,8 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+DAC_HandleTypeDef hdac1;
+
 /* USER CODE BEGIN PV */
 
 #define RCS_VALUE 0.33f
@@ -64,6 +66,7 @@ float imon_current = 0.0f;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_DAC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -103,7 +106,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC1_Init();
+  MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 
   /* USER CODE END 2 */
 
@@ -112,32 +117,30 @@ int main(void)
   while (1)
   {
 
-	  while (1)
-	  {
-	      // Start ADC conversion sequence (3 channels)
-	      HAL_ADC_Start(&hadc1);
+	  HAL_ADC_Start(&hadc1);
 
-	      // Channel 1 → IMON (PA0)
+	      // IMON (PA0)
 	      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	      imon_raw = HAL_ADC_GetValue(&hadc1);
 	      float v_imon = (imon_raw * 3.3f) / 4095.0f;
 	      imon_current = v_imon / (14.0f * RCS_VALUE);
 
-	      // Channel 2 → VOUT (PA1)
+	      // VOUT (PA1)
 	      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	      vout_raw = HAL_ADC_GetValue(&hadc1);
 	      float v_vout_scaled = (vout_raw * 3.3f) / 4095.0f;
 	      vout_voltage = (v_vout_scaled / 0.03226f) * VOUT_CAL_FACTOR;
 
-
-	      // Channel 3 → POT (PA2)
+	      // POT (PA2)
 	      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	      pot_value = HAL_ADC_GetValue(&hadc1);
 	      pot_voltage = (pot_value * 3.3f) / 4095.0f;
 
-	      HAL_Delay(500);
-	  }
+	      // Send POT value to DAC (12-bit right aligned)
+	//      HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, pot_value);
+	      HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2600);
 
+	      HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -273,6 +276,53 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief DAC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC1_Init(void)
+{
+
+  /* USER CODE BEGIN DAC1_Init 0 */
+
+  /* USER CODE END DAC1_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC1_Init 1 */
+
+  /* USER CODE END DAC1_Init 1 */
+
+  /** DAC Initialization
+  */
+  hdac1.Instance = DAC1;
+  if (HAL_DAC_Init(&hdac1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** DAC channel OUT1 config
+  */
+  sConfig.DAC_HighFrequency = DAC_HIGH_FREQUENCY_INTERFACE_MODE_AUTOMATIC;
+  sConfig.DAC_DMADoubleDataMode = DISABLE;
+  sConfig.DAC_SignedFormat = DISABLE;
+  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+  sConfig.DAC_Trigger2 = DAC_TRIGGER_NONE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_EXTERNAL;
+  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC1_Init 2 */
+
+  /* USER CODE END DAC1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -290,6 +340,12 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : nFLT_Pin */
+  GPIO_InitStruct.Pin = nFLT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(nFLT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED1_Pin */
   GPIO_InitStruct.Pin = LED1_Pin;
