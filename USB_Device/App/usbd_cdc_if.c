@@ -32,6 +32,8 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 #include "main.h"
+extern DAC_HandleTypeDef hdac1;
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -270,16 +272,31 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 
 	    if (strncmp(msg, "ON", 2) == 0)
 	    {
-	        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+	        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	        const char reply[] = "LED is ON\r\n";
 	        CDC_Transmit_FS((uint8_t*)reply, (uint16_t)strlen(reply));
 	    }
 	    else if (strncmp(msg, "OFF", 3) == 0)
 	    {
-	        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+	        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 	        const char reply[] = "LED is OFF\r\n";
 	        CDC_Transmit_FS((uint8_t*)reply, (uint16_t)strlen(reply));
 	    }
+
+	    else if (strncmp(msg, "DAC:", 4) == 0)
+	    {
+	        int percent = atoi(msg + 4); // درصد از متن می‌خونه
+	        if (percent < 0) percent = 0;
+	        if (percent > 100) percent = 100;
+
+	        // تبدیل درصد به مقدار DAC (0 تا 4095)
+	        uint32_t dac_value = (percent * 4095) / 100;
+	        HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_value);
+
+	        const char reply[] = "DAC updated\r\n";
+	        CDC_Transmit_FS((uint8_t*)reply, (uint16_t)strlen(reply));
+	    }
+
 	    else
 	    {
 	        const char reply[] = "Unknown command\r\n";

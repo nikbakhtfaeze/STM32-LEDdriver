@@ -140,7 +140,7 @@ int main(void)
 
 	      // Send POT value to DAC (12-bit right aligned)
 	//      HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, pot_value);
-	      HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2600);
+	   //   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2600);
 
 	      HAL_Delay(10);
     /* USER CODE END WHILE */
